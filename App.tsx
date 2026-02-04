@@ -418,10 +418,12 @@ const App: React.FC = () => {
   }, [settings.ambientVolume]);
 
   useEffect(() => {
+    // Only reset time if settings duration or mode changes. 
+    // Do NOT reset when isActive toggles (pause/resume).
     if (!isActive) {
       setTimeLeft((mode === 'focus' ? settings.focusDuration : settings.breakDuration) * 60);
     }
-  }, [settings.focusDuration, settings.breakDuration, mode, isActive]);
+  }, [settings.focusDuration, settings.breakDuration, mode]);
 
   const handleSwitchMode = useCallback((newMode: TimerMode) => {
     setIsActive(false);
@@ -489,23 +491,26 @@ const App: React.FC = () => {
           onToggleFullscreen={toggleFullscreen}
         />
         
-        <div className="w-full flex flex-col gap-6">
-          <div className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-sm border border-slate-100 dark:border-slate-800 animate-in fade-in slide-in-from-bottom-8 duration-700">
-            <div className="flex justify-between items-center mb-6">
-              <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Daily Objective</span>
-              <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 p-1 rounded-xl">
-                <button onClick={() => setStats(s => { const ns = {...s, dailyGoal: Math.max(1, s.dailyGoal - 1)}; saveStats(ns); return ns; })} className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/></svg></button>
-                <span className="text-sm font-bold tabular-nums px-1">{stats.dailyGoal}</span>
-                <button onClick={() => setStats(s => { const ns = {...s, dailyGoal: s.dailyGoal + 1}; saveStats(ns); return ns; })} className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg></button>
+        {/* Hide objective and stats when in Focus Mode */}
+        {!isFocusMode && (
+          <div className="w-full flex flex-col gap-6">
+            <div className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-sm border border-slate-100 dark:border-slate-800 animate-in fade-in slide-in-from-bottom-8 duration-700">
+              <div className="flex justify-between items-center mb-6">
+                <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Daily Objective</span>
+                <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 p-1 rounded-xl">
+                  <button onClick={() => setStats(s => { const ns = {...s, dailyGoal: Math.max(1, s.dailyGoal - 1)}; saveStats(ns); return ns; })} className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/></svg></button>
+                  <span className="text-sm font-bold tabular-nums px-1">{stats.dailyGoal}</span>
+                  <button onClick={() => setStats(s => { const ns = {...s, dailyGoal: s.dailyGoal + 1}; saveStats(ns); return ns; })} className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg></button>
+                </div>
+              </div>
+              <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-full bg-rose-500 transition-all duration-700" style={{ width: `${Math.min((stats.todaySessions / stats.dailyGoal) * 100, 100)}%` }} />
               </div>
             </div>
-            <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-              <div className="h-full bg-rose-500 transition-all duration-700" style={{ width: `${Math.min((stats.todaySessions / stats.dailyGoal) * 100, 100)}%` }} />
-            </div>
-          </div>
 
-          <StatsDashboard stats={stats} />
-        </div>
+            <StatsDashboard stats={stats} />
+          </div>
+        )}
       </main>
 
       {!isFocusMode && (
