@@ -6,11 +6,82 @@ import { playNotification, startAmbientSound, stopAmbientSound } from './utils/a
 
 // --- Components ---
 
+const SettingsModal: React.FC<{
+  isOpen: boolean;
+  settings: AppSettings;
+  onClose: () => void;
+  onSave: (newSettings: AppSettings) => void;
+}> = ({ isOpen, settings, onClose, onSave }) => {
+  const [localFocus, setLocalFocus] = useState(settings.focusDuration);
+  const [localBreak, setLocalBreak] = useState(settings.breakDuration);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-300">
+      <div 
+        className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl border border-slate-100 dark:border-slate-800 animate-in slide-in-from-bottom-8 zoom-in-95 duration-500"
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-xl font-bold text-slate-800 dark:text-white">Settings</h2>
+          <button 
+            onClick={onClose}
+            className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+        </div>
+
+        <div className="space-y-8 mb-10">
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <label className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Focus Duration</label>
+              <span className="text-rose-500 font-bold">{localFocus} min</span>
+            </div>
+            <input 
+              type="range" min="1" max="90" 
+              value={localFocus} 
+              onChange={(e) => setLocalFocus(parseInt(e.target.value))}
+              className="w-full accent-rose-500 h-2 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer"
+            />
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <label className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Break Duration</label>
+              <span className="text-teal-500 font-bold">{localBreak} min</span>
+            </div>
+            <input 
+              type="range" min="1" max="30" 
+              value={localBreak} 
+              onChange={(e) => setLocalBreak(parseInt(e.target.value))}
+              className="w-full accent-teal-500 h-2 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer"
+            />
+          </div>
+        </div>
+
+        <button
+          onClick={() => {
+            onSave({ ...settings, focusDuration: localFocus, breakDuration: localBreak });
+            onClose();
+          }}
+          className="w-full py-4 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-2xl shadow-lg shadow-rose-500/30 transition-all active:scale-[0.98]"
+        >
+          Apply Changes
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const Header: React.FC<{
   settings: AppSettings;
   setSettings: (s: AppSettings) => void;
+  onOpenSettings: () => void;
   isHidden?: boolean;
-}> = ({ settings, setSettings, isHidden }) => {
+}> = ({ settings, setSettings, onOpenSettings, isHidden }) => {
   if (isHidden) return null;
 
   const toggleDark = () => {
@@ -33,7 +104,7 @@ const Header: React.FC<{
         <span className="bg-rose-500 w-3 h-3 rounded-full"></span>
         FocusForge
       </h1>
-      <div className="flex gap-4">
+      <div className="flex gap-3">
         <button
           onClick={toggleSound}
           title="Toggle Ambient Rain"
@@ -58,6 +129,13 @@ const Header: React.FC<{
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
           )}
         </button>
+        <button
+          onClick={onOpenSettings}
+          title="Timer Settings"
+          className="p-2 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-500 transition-all hover:scale-110"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
       </div>
     </header>
   );
@@ -68,19 +146,20 @@ const Timer: React.FC<{
   timeLeft: number;
   isActive: boolean;
   isFocusMode: boolean;
+  settings: AppSettings;
   onToggle: () => void;
   onReset: () => void;
   onSwitchMode: (m: TimerMode) => void;
   onToggleFocusMode: () => void;
   onToggleFullscreen: () => void;
-}> = ({ mode, timeLeft, isActive, isFocusMode, onToggle, onReset, onSwitchMode, onToggleFocusMode, onToggleFullscreen }) => {
+}> = ({ mode, timeLeft, isActive, isFocusMode, settings, onToggle, onReset, onSwitchMode, onToggleFocusMode, onToggleFullscreen }) => {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const totalTime = mode === 'focus' ? 25 * 60 : 5 * 60;
+  const totalTime = (mode === 'focus' ? settings.focusDuration : settings.breakDuration) * 60;
   const progress = ((totalTime - timeLeft) / totalTime) * 100;
   const radius = 120;
   const circumference = 2 * Math.PI * radius;
@@ -292,12 +371,13 @@ const StatsBoard: React.FC<{
 // --- Main App ---
 
 const App: React.FC = () => {
+  const [settings, setSettings] = useState<AppSettings>(getSettings());
   const [mode, setMode] = useState<TimerMode>('focus');
-  const [timeLeft, setTimeLeft] = useState(25 * 60);
+  const [timeLeft, setTimeLeft] = useState(settings.focusDuration * 60);
   const [isActive, setIsActive] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [stats, setStats] = useState<UserStats>(getStats());
-  const [settings, setSettings] = useState<AppSettings>(getSettings());
   const timerRef = useRef<number | null>(null);
 
   // Sync dark mode class with state
@@ -309,11 +389,18 @@ const App: React.FC = () => {
     }
   }, [settings.darkMode]);
 
+  // Sync timer when settings change and timer is NOT active
+  useEffect(() => {
+    if (!isActive) {
+      setTimeLeft((mode === 'focus' ? settings.focusDuration : settings.breakDuration) * 60);
+    }
+  }, [settings.focusDuration, settings.breakDuration, mode, isActive]);
+
   const handleSwitchMode = useCallback((newMode: TimerMode) => {
     setIsActive(false);
     setMode(newMode);
-    setTimeLeft(newMode === 'focus' ? 25 * 60 : 5 * 60);
-  }, []);
+    setTimeLeft((newMode === 'focus' ? settings.focusDuration : settings.breakDuration) * 60);
+  }, [settings]);
 
   const completeSession = useCallback(() => {
     playNotification();
@@ -355,13 +442,13 @@ const App: React.FC = () => {
   const toggleTimer = () => setIsActive(!isActive);
 
   const resetTimer = () => {
-    if (isFocusMode) return; // Prevent reset in Focus Mode
+    if (isFocusMode) return;
     setIsActive(false);
-    setTimeLeft(mode === 'focus' ? 25 * 60 : 5 * 60);
+    setTimeLeft((mode === 'focus' ? settings.focusDuration : settings.breakDuration) * 60);
   };
 
   const handleSetSettings = (newSettings: AppSettings) => {
-    if (isFocusMode) return; // Prevent settings access while focus mode is active
+    if (isFocusMode) return;
     setSettings(newSettings);
     saveSettings(newSettings);
   };
@@ -383,7 +470,12 @@ const App: React.FC = () => {
 
   return (
     <div className={`min-h-screen flex flex-col items-center px-6 transition-all duration-1000 ${isFocusMode ? 'justify-center overflow-hidden pb-0' : 'pb-20'}`}>
-      <Header settings={settings} setSettings={handleSetSettings} isHidden={isFocusMode} />
+      <Header 
+        settings={settings} 
+        setSettings={handleSetSettings} 
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        isHidden={isFocusMode} 
+      />
       
       <main className={`w-full flex flex-col items-center max-w-2xl transition-all duration-1000 ${isFocusMode ? 'gap-0 mt-0' : 'gap-12 mt-8'}`}>
         <Timer
@@ -391,6 +483,7 @@ const App: React.FC = () => {
           timeLeft={timeLeft}
           isActive={isActive}
           isFocusMode={isFocusMode}
+          settings={settings}
           onToggle={toggleTimer}
           onReset={resetTimer}
           onSwitchMode={handleSwitchMode}
@@ -406,6 +499,13 @@ const App: React.FC = () => {
           Crafted for Clarity &bull; FocusForge &copy; {new Date().getFullYear()}
         </footer>
       )}
+
+      <SettingsModal 
+        isOpen={isSettingsOpen}
+        settings={settings}
+        onClose={() => setIsSettingsOpen(false)}
+        onSave={handleSetSettings}
+      />
     </div>
   );
 };

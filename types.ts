@@ -12,4 +12,6 @@ export interface UserStats {
 export interface AppSettings {
   darkMode: boolean;
   ambientSound: boolean;
+  focusDuration: number; // in minutes
+  breakDuration: number; // in minutes
 }

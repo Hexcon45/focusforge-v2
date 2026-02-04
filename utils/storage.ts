@@ -15,6 +15,8 @@ const DEFAULT_STATS: UserStats = {
 const DEFAULT_SETTINGS: AppSettings = {
   darkMode: false,
   ambientSound: false,
+  focusDuration: 25,
+  breakDuration: 5,
 };
 
 export const getStats = (): UserStats => {
@@ -52,7 +54,7 @@ export const saveStats = (stats: UserStats) => {
 
 export const getSettings = (): AppSettings => {
   const stored = localStorage.getItem(SETTINGS_KEY);
-  return stored ? JSON.parse(stored) : DEFAULT_SETTINGS;
+  return stored ? { ...DEFAULT_SETTINGS, ...JSON.parse(stored) } : DEFAULT_SETTINGS;
 };
 
 export const saveSettings = (settings: AppSettings) => {
