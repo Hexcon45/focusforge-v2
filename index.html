@@ -6,17 +6,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FocusForge - Minimalist Pomodoro</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            },
+          },
+        },
+      }
+    </script>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+      
+      /* Smooth transitions for all theme-related properties */
+      * {
+        transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                    border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                    color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                    fill 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                    stroke 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                    box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
       body {
         font-family: 'Inter', sans-serif;
-        transition: background-color 0.3s ease, color 0.3s ease;
       }
+
       .timer-digit {
         font-variant-numeric: tabular-nums;
       }
+
       .progress-ring {
-        transition: stroke-dashoffset 0.35s;
+        transition: stroke-dashoffset 0.35s ease-out;
         transform: rotate(-90deg);
         transform-origin: 50% 50%;
       }
@@ -31,7 +55,7 @@
 }
 </script>
 </head>
-<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen">
     <div id="root"></div>
 </body>
 </html>

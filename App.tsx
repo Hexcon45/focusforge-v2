@@ -11,9 +11,7 @@ const Header: React.FC<{
   setSettings: (s: AppSettings) => void;
 }> = ({ settings, setSettings }) => {
   const toggleDark = () => {
-    const newSettings = { ...settings, darkMode: !settings.darkMode };
-    setSettings(newSettings);
-    document.documentElement.classList.toggle('dark', newSettings.darkMode);
+    setSettings({ ...settings, darkMode: !settings.darkMode });
   };
 
   const toggleSound = () => {
@@ -112,7 +110,7 @@ const Timer: React.FC<{
           />
           <circle
             cx="50%" cy="50%" r={radius}
-            className={`progress-ring transition-all duration-1000 ease-linear ${
+            className={`progress-ring ${
               mode === 'focus' ? 'stroke-rose-500' : 'stroke-teal-500'
             }`}
             strokeWidth="12" fill="none"
@@ -231,12 +229,14 @@ const App: React.FC = () => {
   const [settings, setSettings] = useState<AppSettings>(getSettings());
   const timerRef = useRef<number | null>(null);
 
-  // Initialize UI
+  // Sync dark mode class with state
   useEffect(() => {
     if (settings.darkMode) {
       document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
     }
-  }, []);
+  }, [settings.darkMode]);
 
   const handleSwitchMode = useCallback((newMode: TimerMode) => {
     setIsActive(false);
@@ -311,7 +311,7 @@ const App: React.FC = () => {
       </main>
 
       <footer className="mt-auto pt-16 text-slate-400 text-xs font-medium uppercase tracking-widest text-center opacity-50">
-        Crafted for Clarity &bull; FocusForge &copy; {new Date().getFullYear()}
+        Crafted for Clarity & bull; FocusForge &copy; {new Date().getFullYear()}
       </footer>
     </div>
   );
