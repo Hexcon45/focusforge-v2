@@ -1,0 +1,7 @@
+{
+  "name": "FocusForge",
+  "description": "A sleek, minimal Pomodoro timer with daily goals, weekly tracking, and ambient sounds for peak productivity.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
