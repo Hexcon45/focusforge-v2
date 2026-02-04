@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { TimerMode, UserStats, AppSettings } from './types';
+import { TimerMode, UserStats, AppSettings, AmbientSoundType } from './types';
 import { getStats, saveStats, getSettings, saveSettings } from './utils/storage';
-import { playNotification, startAmbientSound, stopAmbientSound } from './utils/audio';
+import { playNotification, startAmbientSound, stopAmbientSound, updateAmbientVolume } from './utils/audio';
 
 // --- Components ---
 
@@ -12,10 +12,17 @@ const SettingsModal: React.FC<{
   onClose: () => void;
   onSave: (newSettings: AppSettings) => void;
 }> = ({ isOpen, settings, onClose, onSave }) => {
-  const [localFocus, setLocalFocus] = useState(settings.focusDuration);
-  const [localBreak, setLocalBreak] = useState(settings.breakDuration);
+  const [localSettings, setLocalSettings] = useState(settings);
+
+  useEffect(() => {
+    if (isOpen) setLocalSettings(settings);
+  }, [isOpen, settings]);
 
   if (!isOpen) return null;
+
+  const handleSoundType = (type: AmbientSoundType) => {
+    setLocalSettings({ ...localSettings, ambientSoundType: type });
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-300">
@@ -34,16 +41,16 @@ const SettingsModal: React.FC<{
           </button>
         </div>
 
-        <div className="space-y-8 mb-10">
+        <div className="space-y-6 mb-10 overflow-y-auto max-h-[60vh] px-1">
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <label className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Focus Duration</label>
-              <span className="text-rose-500 font-bold">{localFocus} min</span>
+              <span className="text-rose-500 font-bold">{localSettings.focusDuration} min</span>
             </div>
             <input 
               type="range" min="1" max="90" 
-              value={localFocus} 
-              onChange={(e) => setLocalFocus(parseInt(e.target.value))}
+              value={localSettings.focusDuration} 
+              onChange={(e) => setLocalSettings({...localSettings, focusDuration: parseInt(e.target.value)})}
               className="w-full accent-rose-500 h-2 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer"
             />
           </div>
@@ -51,20 +58,52 @@ const SettingsModal: React.FC<{
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <label className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Break Duration</label>
-              <span className="text-teal-500 font-bold">{localBreak} min</span>
+              <span className="text-teal-500 font-bold">{localSettings.breakDuration} min</span>
             </div>
             <input 
               type="range" min="1" max="30" 
-              value={localBreak} 
-              onChange={(e) => setLocalBreak(parseInt(e.target.value))}
+              value={localSettings.breakDuration} 
+              onChange={(e) => setLocalSettings({...localSettings, breakDuration: parseInt(e.target.value)})}
               className="w-full accent-teal-500 h-2 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer"
             />
+          </div>
+
+          <div className="border-t border-slate-100 dark:border-slate-800 pt-6 space-y-4">
+            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wider block">Ambient Sound</label>
+            <div className="grid grid-cols-3 gap-2">
+              {(['rain', 'cafe', 'white'] as AmbientSoundType[]).map((type) => (
+                <button
+                  key={type}
+                  onClick={() => handleSoundType(type)}
+                  className={`py-2 px-3 rounded-xl text-xs font-bold capitalize transition-all ${
+                    localSettings.ambientSoundType === type 
+                    ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20' 
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+            
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Volume</span>
+                <span className="text-xs font-bold text-slate-500">{Math.round(localSettings.ambientVolume * 100)}%</span>
+              </div>
+              <input 
+                type="range" min="0" max="1" step="0.01"
+                value={localSettings.ambientVolume} 
+                onChange={(e) => setLocalSettings({...localSettings, ambientVolume: parseFloat(e.target.value)})}
+                className="w-full accent-slate-400 h-2 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer"
+              />
+            </div>
           </div>
         </div>
 
         <button
           onClick={() => {
-            onSave({ ...settings, focusDuration: localFocus, breakDuration: localBreak });
+            onSave(localSettings);
             onClose();
           }}
           className="w-full py-4 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-2xl shadow-lg shadow-rose-500/30 transition-all active:scale-[0.98]"
@@ -89,10 +128,10 @@ const Header: React.FC<{
   };
 
   const toggleSound = () => {
-    const newSettings = { ...settings, ambientSound: !settings.ambientSound };
-    setSettings(newSettings);
-    if (newSettings.ambientSound) {
-      startAmbientSound();
+    const newActive = !settings.ambientSound;
+    setSettings({ ...settings, ambientSound: newActive });
+    if (newActive) {
+      startAmbientSound(settings.ambientSoundType, settings.ambientVolume);
     } else {
       stopAmbientSound();
     }
@@ -107,7 +146,7 @@ const Header: React.FC<{
       <div className="flex gap-3">
         <button
           onClick={toggleSound}
-          title="Toggle Ambient Rain"
+          title="Toggle Ambient Sound"
           className={`p-2 rounded-full transition-all hover:scale-110 ${
             settings.ambientSound ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'
           }`}
@@ -389,6 +428,20 @@ const App: React.FC = () => {
     }
   }, [settings.darkMode]);
 
+  // Handle ambient sound state changes
+  useEffect(() => {
+    if (settings.ambientSound) {
+      startAmbientSound(settings.ambientSoundType, settings.ambientVolume);
+    } else {
+      stopAmbientSound();
+    }
+  }, [settings.ambientSound, settings.ambientSoundType]);
+
+  // Handle ambient volume live updates
+  useEffect(() => {
+    updateAmbientVolume(settings.ambientVolume);
+  }, [settings.ambientVolume]);
+
   // Sync timer when settings change and timer is NOT active
   useEffect(() => {
     if (!isActive) {
@@ -496,7 +549,7 @@ const App: React.FC = () => {
 
       {!isFocusMode && (
         <footer className="mt-auto pt-16 text-slate-400 text-xs font-medium uppercase tracking-widest text-center opacity-50 animate-in fade-in duration-1000">
-          Crafted for Clarity &bull; FocusForge &copy; {new Date().getFullYear()}
+          Crafted for Clarity & bull; FocusForge &copy; {new Date().getFullYear()}
         </footer>
       )}
 

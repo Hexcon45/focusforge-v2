@@ -15,6 +15,8 @@ const DEFAULT_STATS: UserStats = {
 const DEFAULT_SETTINGS: AppSettings = {
   darkMode: false,
   ambientSound: false,
+  ambientSoundType: 'rain',
+  ambientVolume: 0.5,
   focusDuration: 25,
   breakDuration: 5,
 };
