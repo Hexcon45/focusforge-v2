@@ -6,6 +6,94 @@ import { playNotification, startAmbientSound, stopAmbientSound, updateAmbientVol
 
 // --- Components ---
 
+const StatsDashboard: React.FC<{ stats: UserStats }> = ({ stats }) => {
+  const [isCollapsed, setIsCollapsed] = useState(true);
+
+  const formatMinutes = (m: number) => {
+    const hours = Math.floor(m / 60);
+    const mins = m % 60;
+    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  };
+
+  // Prepare chart data for the last 7 days
+  const chartData = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const dateStr = d.toISOString().split('T')[0];
+    const count = dateStr === new Date().toISOString().split('T')[0] 
+      ? stats.todaySessions 
+      : (stats.history[dateStr] || 0);
+    return {
+      day: d.toLocaleDateString('en-US', { weekday: 'short' }),
+      count
+    };
+  });
+
+  const maxSessions = Math.max(...chartData.map(d => d.count), 1);
+
+  return (
+    <div className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800 animate-in fade-in slide-in-from-bottom-8 duration-700">
+      <button 
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="w-full px-8 py-6 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+      >
+        <div className="flex items-center gap-4">
+          <div className="p-2 bg-rose-100 dark:bg-rose-900/30 rounded-xl text-rose-600 dark:text-rose-400">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+          </div>
+          <span className="font-bold text-slate-700 dark:text-slate-300">Insights & Performance</span>
+        </div>
+        <svg 
+          className={`text-slate-400 transition-transform duration-300 ${isCollapsed ? '' : 'rotate-180'}`}
+          xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+        >
+          <path d="m6 9 6 6 6-6"/>
+        </svg>
+      </button>
+
+      {!isCollapsed && (
+        <div className="px-8 pb-8 pt-2 space-y-8 animate-in fade-in duration-500">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-800">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Focus Time (Today)</span>
+              <span className="text-2xl font-bold tabular-nums text-slate-800 dark:text-white">{formatMinutes(stats.totalMinutesToday)}</span>
+            </div>
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-800">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Focus Time (Week)</span>
+              <span className="text-2xl font-bold tabular-nums text-slate-800 dark:text-white">{formatMinutes(stats.totalMinutesWeek)}</span>
+            </div>
+          </div>
+
+          <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
+            <div className="flex justify-between items-center mb-6">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Activity History (7 Days)</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-rose-500">Longest Streak: {stats.longestStreak} days</span>
+              </div>
+            </div>
+            
+            <div className="flex items-end justify-between h-32 gap-2">
+              {chartData.map((d, i) => (
+                <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
+                  <div 
+                    className="w-full bg-rose-200 dark:bg-rose-900/30 rounded-t-lg transition-all duration-1000 origin-bottom hover:bg-rose-500 dark:hover:bg-rose-500 relative"
+                    style={{ height: `${(d.count / maxSessions) * 100}%`, minHeight: d.count > 0 ? '4px' : '0' }}
+                  >
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                      {d.count} sessions
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">{d.day}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const SettingsModal: React.FC<{
   isOpen: boolean;
   settings: AppSettings;
@@ -20,16 +108,11 @@ const SettingsModal: React.FC<{
 
   if (!isOpen) return null;
 
-  const handleSoundType = (type: AmbientSoundType) => {
-    setLocalSettings({ ...localSettings, ambientSoundType: type });
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-300">
       <div 
         className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl border border-slate-100 dark:border-slate-800 animate-in slide-in-from-bottom-8 zoom-in-95 duration-500"
         role="dialog"
-        aria-modal="true"
       >
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-xl font-bold text-slate-800 dark:text-white">Settings</h2>
@@ -74,7 +157,7 @@ const SettingsModal: React.FC<{
               {(['rain', 'cafe', 'white'] as AmbientSoundType[]).map((type) => (
                 <button
                   key={type}
-                  onClick={() => handleSoundType(type)}
+                  onClick={() => setLocalSettings({ ...localSettings, ambientSoundType: type })}
                   className={`py-2 px-3 rounded-xl text-xs font-bold capitalize transition-all ${
                     localSettings.ambientSoundType === type 
                     ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20' 
@@ -123,20 +206,6 @@ const Header: React.FC<{
 }> = ({ settings, setSettings, onOpenSettings, isHidden }) => {
   if (isHidden) return null;
 
-  const toggleDark = () => {
-    setSettings({ ...settings, darkMode: !settings.darkMode });
-  };
-
-  const toggleSound = () => {
-    const newActive = !settings.ambientSound;
-    setSettings({ ...settings, ambientSound: newActive });
-    if (newActive) {
-      startAmbientSound(settings.ambientSoundType, settings.ambientVolume);
-    } else {
-      stopAmbientSound();
-    }
-  };
-
   return (
     <header className="w-full max-w-2xl flex justify-between items-center py-6 px-4 animate-in fade-in slide-in-from-top-4 duration-500">
       <h1 className="text-2xl font-extrabold tracking-tight text-slate-800 dark:text-white flex items-center gap-2">
@@ -145,7 +214,12 @@ const Header: React.FC<{
       </h1>
       <div className="flex gap-3">
         <button
-          onClick={toggleSound}
+          onClick={() => {
+            const newActive = !settings.ambientSound;
+            setSettings({ ...settings, ambientSound: newActive });
+            if (newActive) startAmbientSound(settings.ambientSoundType, settings.ambientVolume);
+            else stopAmbientSound();
+          }}
           title="Toggle Ambient Sound"
           className={`p-2 rounded-full transition-all hover:scale-110 ${
             settings.ambientSound ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'
@@ -158,7 +232,7 @@ const Header: React.FC<{
           )}
         </button>
         <button
-          onClick={toggleDark}
+          onClick={() => setSettings({ ...settings, darkMode: !settings.darkMode })}
           title="Toggle Dark Mode"
           className="p-2 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-500 transition-all hover:scale-110"
         >
@@ -317,96 +391,6 @@ const Timer: React.FC<{
   );
 };
 
-const StatsBoard: React.FC<{
-  stats: UserStats;
-  setStats: (s: UserStats) => void;
-  isHidden?: boolean;
-}> = ({ stats, setStats, isHidden }) => {
-  if (isHidden) return null;
-
-  const goalProgress = Math.min((stats.todaySessions / stats.dailyGoal) * 100, 100);
-  const isGoalReached = stats.todaySessions >= stats.dailyGoal;
-
-  const handleUpdateGoal = (newValue: number) => {
-    const validated = Math.max(1, Math.min(99, newValue));
-    const newStats = { ...stats, dailyGoal: validated };
-    setStats(newStats);
-    saveStats(newStats);
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    handleUpdateGoal(parseInt(e.target.value) || 1);
-  };
-
-  return (
-    <div className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-sm border border-slate-100 dark:border-slate-800 animate-in fade-in slide-in-from-bottom-8 duration-700">
-      <div className="grid grid-cols-2 gap-8 mb-8">
-        <div className="flex flex-col">
-          <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1">Today</span>
-          <span className="text-3xl font-bold">{stats.todaySessions} <span className="text-sm text-slate-400 font-normal">sessions</span></span>
-        </div>
-        <div className="flex flex-col">
-          <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1">This Week</span>
-          <span className="text-3xl font-bold">{stats.weekSessions} <span className="text-sm text-slate-400 font-normal">sessions</span></span>
-        </div>
-      </div>
-
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div className="flex flex-col gap-1">
-            <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Daily Goal</span>
-            {isGoalReached && (
-              <span className="text-xs text-rose-500 font-bold flex items-center gap-1 animate-pulse">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                Goal Achieved!
-              </span>
-            )}
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-400 uppercase font-bold tracking-widest mr-1">Sessions</span>
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 gap-1 border border-slate-200 dark:border-slate-700">
-              <input
-                type="number"
-                min="1"
-                max="99"
-                value={stats.dailyGoal}
-                onChange={handleInputChange}
-                className="w-10 bg-transparent border-none text-center font-bold text-lg focus:outline-none"
-              />
-              <div className="flex flex-col gap-1">
-                <button
-                  onClick={() => handleUpdateGoal(stats.dailyGoal + 1)}
-                  className="p-1 rounded-md text-slate-400 hover:text-rose-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                  title="Increase Goal"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6"/></svg>
-                </button>
-                <button
-                  onClick={() => handleUpdateGoal(stats.dailyGoal - 1)}
-                  className="p-1 rounded-md text-slate-400 hover:text-rose-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                  title="Decrease Goal"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-          <div
-            className={`h-full transition-all duration-500 ease-out ${
-              isGoalReached ? 'bg-gradient-to-r from-rose-500 to-orange-400' : 'bg-rose-500'
-            }`}
-            style={{ width: `${goalProgress}%` }}
-          />
-        </div>
-      </div>
-    </div>
-  );
-};
-
 // --- Main App ---
 
 const App: React.FC = () => {
@@ -419,30 +403,20 @@ const App: React.FC = () => {
   const [stats, setStats] = useState<UserStats>(getStats());
   const timerRef = useRef<number | null>(null);
 
-  // Sync dark mode class with state
   useEffect(() => {
-    if (settings.darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    if (settings.darkMode) document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
   }, [settings.darkMode]);
 
-  // Handle ambient sound state changes
   useEffect(() => {
-    if (settings.ambientSound) {
-      startAmbientSound(settings.ambientSoundType, settings.ambientVolume);
-    } else {
-      stopAmbientSound();
-    }
+    if (settings.ambientSound) startAmbientSound(settings.ambientSoundType, settings.ambientVolume);
+    else stopAmbientSound();
   }, [settings.ambientSound, settings.ambientSoundType]);
 
-  // Handle ambient volume live updates
   useEffect(() => {
     updateAmbientVolume(settings.ambientVolume);
   }, [settings.ambientVolume]);
 
-  // Sync timer when settings change and timer is NOT active
   useEffect(() => {
     if (!isActive) {
       setTimeLeft((mode === 'focus' ? settings.focusDuration : settings.breakDuration) * 60);
@@ -458,10 +432,13 @@ const App: React.FC = () => {
   const completeSession = useCallback(() => {
     playNotification();
     if (mode === 'focus') {
-      const newStats = {
+      const minutesCompleted = settings.focusDuration;
+      const newStats: UserStats = {
         ...stats,
         todaySessions: stats.todaySessions + 1,
         weekSessions: stats.weekSessions + 1,
+        totalMinutesToday: stats.totalMinutesToday + minutesCompleted,
+        totalMinutesWeek: stats.totalMinutesWeek + minutesCompleted,
       };
       setStats(newStats);
       saveStats(newStats);
@@ -469,7 +446,7 @@ const App: React.FC = () => {
     } else {
       handleSwitchMode('focus');
     }
-  }, [mode, stats, handleSwitchMode]);
+  }, [mode, stats, handleSwitchMode, settings]);
 
   useEffect(() => {
     if (isActive) {
@@ -486,49 +463,17 @@ const App: React.FC = () => {
     } else if (timerRef.current) {
       clearInterval(timerRef.current);
     }
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [isActive, completeSession]);
 
   const toggleTimer = () => setIsActive(!isActive);
-
-  const resetTimer = () => {
-    if (isFocusMode) return;
-    setIsActive(false);
-    setTimeLeft((mode === 'focus' ? settings.focusDuration : settings.breakDuration) * 60);
-  };
-
-  const handleSetSettings = (newSettings: AppSettings) => {
-    if (isFocusMode) return;
-    setSettings(newSettings);
-    saveSettings(newSettings);
-  };
-
-  const toggleFocusMode = () => {
-    setIsFocusMode(!isFocusMode);
-    if (isFocusMode && document.fullscreenElement) {
-      document.exitFullscreen().catch(() => {});
-    }
-  };
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
-    } else {
-      document.exitFullscreen().catch(() => {});
-    }
-  };
+  const resetTimer = () => { if (!isFocusMode) { setIsActive(false); setTimeLeft((mode === 'focus' ? settings.focusDuration : settings.breakDuration) * 60); } };
+  const toggleFocusMode = () => { setIsFocusMode(!isFocusMode); if (isFocusMode && document.fullscreenElement) document.exitFullscreen().catch(() => {}); };
+  const toggleFullscreen = () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {}); else document.exitFullscreen().catch(() => {}); };
 
   return (
     <div className={`min-h-screen flex flex-col items-center px-6 transition-all duration-1000 ${isFocusMode ? 'justify-center overflow-hidden pb-0' : 'pb-20'}`}>
-      <Header 
-        settings={settings} 
-        setSettings={handleSetSettings} 
-        onOpenSettings={() => setIsSettingsOpen(true)}
-        isHidden={isFocusMode} 
-      />
+      <Header settings={settings} setSettings={setSettings} onOpenSettings={() => setIsSettingsOpen(true)} isHidden={isFocusMode} />
       
       <main className={`w-full flex flex-col items-center max-w-2xl transition-all duration-1000 ${isFocusMode ? 'gap-0 mt-0' : 'gap-12 mt-8'}`}>
         <Timer
@@ -544,21 +489,32 @@ const App: React.FC = () => {
           onToggleFullscreen={toggleFullscreen}
         />
         
-        <StatsBoard stats={stats} setStats={setStats} isHidden={isFocusMode} />
+        <div className="w-full flex flex-col gap-6">
+          <div className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-sm border border-slate-100 dark:border-slate-800 animate-in fade-in slide-in-from-bottom-8 duration-700">
+            <div className="flex justify-between items-center mb-6">
+              <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Daily Objective</span>
+              <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 p-1 rounded-xl">
+                <button onClick={() => setStats(s => { const ns = {...s, dailyGoal: Math.max(1, s.dailyGoal - 1)}; saveStats(ns); return ns; })} className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/></svg></button>
+                <span className="text-sm font-bold tabular-nums px-1">{stats.dailyGoal}</span>
+                <button onClick={() => setStats(s => { const ns = {...s, dailyGoal: s.dailyGoal + 1}; saveStats(ns); return ns; })} className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg></button>
+              </div>
+            </div>
+            <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-full bg-rose-500 transition-all duration-700" style={{ width: `${Math.min((stats.todaySessions / stats.dailyGoal) * 100, 100)}%` }} />
+            </div>
+          </div>
+
+          <StatsDashboard stats={stats} />
+        </div>
       </main>
 
       {!isFocusMode && (
-        <footer className="mt-auto pt-16 text-slate-400 text-xs font-medium uppercase tracking-widest text-center opacity-50 animate-in fade-in duration-1000">
-          Crafted for Clarity & bull; FocusForge &copy; {new Date().getFullYear()}
+        <footer className="mt-auto pt-16 text-slate-400 text-xs font-medium uppercase tracking-widest text-center opacity-50">
+          FocusForge &copy; {new Date().getFullYear()}
         </footer>
       )}
 
-      <SettingsModal 
-        isOpen={isSettingsOpen}
-        settings={settings}
-        onClose={() => setIsSettingsOpen(false)}
-        onSave={handleSetSettings}
-      />
+      <SettingsModal isOpen={isSettingsOpen} settings={settings} onClose={() => setIsSettingsOpen(false)} onSave={setSettings} />
     </div>
   );
 };

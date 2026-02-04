@@ -8,6 +8,11 @@ export interface UserStats {
   dailyGoal: number;
   lastUpdate: string; // ISO Date
   weekStartDate: string; // ISO Date
+  totalMinutesToday: number;
+  totalMinutesWeek: number;
+  longestStreak: number;
+  currentStreak: number;
+  history: { [date: string]: number }; // ISO date string -> session count
 }
 
 export interface AppSettings {

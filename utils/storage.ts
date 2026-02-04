@@ -10,6 +10,11 @@ const DEFAULT_STATS: UserStats = {
   dailyGoal: 4,
   lastUpdate: new Date().toISOString(),
   weekStartDate: new Date().toISOString(),
+  totalMinutesToday: 0,
+  totalMinutesWeek: 0,
+  longestStreak: 0,
+  currentStreak: 0,
+  history: {},
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -27,19 +32,44 @@ export const getStats = (): UserStats => {
   
   const stats: UserStats = JSON.parse(stored);
   const now = new Date();
-  const lastUpdate = new Date(stats.lastUpdate);
-  const weekStart = new Date(stats.weekStartDate);
+  const todayStr = now.toISOString().split('T')[0];
+  const lastUpdateDate = new Date(stats.lastUpdate);
+  const lastUpdateStr = lastUpdateDate.toISOString().split('T')[0];
 
-  // Daily Reset
-  if (now.toDateString() !== lastUpdate.toDateString()) {
+  // Daily Reset and Streak Logic
+  if (todayStr !== lastUpdateStr) {
+    // Archive yesterday's sessions
+    stats.history[lastUpdateStr] = stats.todaySessions;
+
+    // Check Streak
+    const diffTime = Math.abs(now.getTime() - lastUpdateDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays <= 1) {
+      // Streak continues if they did something yesterday
+      if (stats.todaySessions > 0) {
+        stats.currentStreak += 1;
+      }
+    } else {
+      // Streak broken
+      stats.currentStreak = 0;
+    }
+
+    if (stats.currentStreak > stats.longestStreak) {
+      stats.longestStreak = stats.currentStreak;
+    }
+
     stats.todaySessions = 0;
+    stats.totalMinutesToday = 0;
     stats.lastUpdate = now.toISOString();
   }
 
-  // Weekly Reset (Every 7 Days)
-  const diffDays = Math.floor((now.getTime() - weekStart.getTime()) / (1000 * 60 * 60 * 24));
-  if (diffDays >= 7) {
+  // Weekly Reset
+  const weekStart = new Date(stats.weekStartDate);
+  const diffWeekDays = Math.floor((now.getTime() - weekStart.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffWeekDays >= 7) {
     stats.weekSessions = 0;
+    stats.totalMinutesWeek = 0;
     stats.weekStartDate = now.toISOString();
   }
 
@@ -48,10 +78,7 @@ export const getStats = (): UserStats => {
 };
 
 export const saveStats = (stats: UserStats) => {
-  localStorage.setItem(STATS_KEY, JSON.stringify({
-    ...stats,
-    lastUpdate: new Date().toISOString()
-  }));
+  localStorage.setItem(STATS_KEY, JSON.stringify(stats));
 };
 
 export const getSettings = (): AppSettings => {
